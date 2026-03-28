@@ -1,38 +1,102 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+.page {
   min-height: 100vh;
+  background: #f4f6f8;
+  padding: 24px 12px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.feed {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.title {
+  text-align: center;
+  margin: 0;
+}
+
+.session {
+  text-align: center;
+  color: #555;
+  margin: 8px 0 18px;
+}
+
+.create-post {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.create-post input,
+.comments input {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.create-post button,
+.actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.post-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.post-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  margin-bottom: 8px;
 }
 
-.App-link {
-  color: #61dafb;
+.post-header span {
+  color: #666;
+  font-size: 13px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.post-image {
+  width: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-bottom: 8px;
+}
+
+.caption {
+  margin: 0 0 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.actions .delete {
+  background: #c62828;
+}
+
+.comments p {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.error {
+  color: #c62828;
+  margin: 8px 0 12px;
 }
