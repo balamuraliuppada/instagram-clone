@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { formatTimeAgo } from "../utils/time";
 
 const PostCard = ({
@@ -23,7 +24,9 @@ const PostCard = ({
         <div className="post-user">
           <div className="post-avatar">{post.username.slice(0, 1).toUpperCase()}</div>
           <div>
-            <p className="post-username">{post.username}</p>
+            <Link to={"/profile/" + encodeURIComponent(post.username)} className="post-username-link">
+              <p className="post-username">{post.username}</p>
+            </Link>
             <p className="post-location">{formatTimeAgo(post.createdAt)}</p>
           </div>
         </div>
@@ -64,18 +67,23 @@ const PostCard = ({
           ))}
         </div>
 
-        <input
-          className="comment-input"
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submitComment();
-            }
-          }}
-          placeholder="Add a comment..."
-        />
+        <div className="comment-row">
+          <input
+            className="comment-input"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitComment();
+              }
+            }}
+            placeholder="Add a comment..."
+          />
+          <button type="button" className="action-btn secondary-btn" onClick={submitComment}>
+            Send
+          </button>
+        </div>
       </div>
     </article>
   );

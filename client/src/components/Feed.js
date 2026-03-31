@@ -1,73 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CreatePost from "./CreatePost";
 import PostCard from "./PostCard";
 import Stories from "./Stories";
-
-const API_BASE = "http://localhost:5000";
+import { usePosts } from "../hooks/usePosts";
 
 const Feed = ({ username }) => {
-  const [posts, setPosts] = useState([]);
   const [caption, setCaption] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [error, setError] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [viewFilter, setViewFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
+  const [localError, setLocalError] = useState("");
+
+  const { posts, error, fetchPosts, createPost, toggleLike, deletePost, addComment } = usePosts();
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const res = await fetch(API_BASE + "/api/posts");
-        if (!res.ok) throw new Error("Failed to fetch posts");
-        const data = await res.json();
-        setPosts(data);
-      } catch (err) {
-        setError("Could not load posts.");
-      }
-    };
-
+    if (!username) return;
     fetchPosts();
-  }, []);
+  }, [fetchPosts, username]);
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!username || !caption.trim()) return;
 
     try {
-      const res = await fetch(API_BASE + "/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          caption: caption.trim(),
-          imageUrl: imageUrl.trim()
-        })
+      await createPost({
+        username,
+        caption: caption.trim(),
+        imageUrl: imageUrl.trim()
       });
-
-      if (!res.ok) throw new Error("Failed to create post");
-      const createdPost = await res.json();
-      setPosts((prev) => [createdPost, ...prev]);
       setCaption("");
       setImageUrl("");
-      setError("");
+      setLocalError("");
     } catch (err) {
-      setError("Could not create post.");
+      setLocalError("Could not create post.");
     }
   };
 
-  const toggleLike = async (postId) => {
+  const handleToggleLike = async (postId) => {
     if (!username) return;
-
     try {
-      const res = await fetch(API_BASE + "/api/posts/" + postId + "/like", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username })
-      });
-
-      if (!res.ok) throw new Error("Failed to like post");
-      const updatedPost = await res.json();
-      setPosts((prev) => prev.map((post) => (post._id === postId ? updatedPost : post)));
-      setError("");
+      await toggleLike(postId, username);
+      setLocalError("");
     } catch (err) {
-      setError("Could not update like.");
+      setLocalError("Could not update like.");
     }
   };
 
@@ -75,18 +51,10 @@ const Feed = ({ username }) => {
     if (!username || !text.trim()) return;
 
     try {
-      const res = await fetch(API_BASE + "/api/posts/" + postId + "/comment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, text: text.trim() })
-      });
-
-      if (!res.ok) throw new Error("Failed to add comment");
-      const updatedPost = await res.json();
-      setPosts((prev) => prev.map((post) => (post._id === postId ? updatedPost : post)));
-      setError("");
+      await addComment(postId, username, text.trim());
+      setLocalError("");
     } catch (err) {
-      setError("Could not add comment.");
+      setLocalError("Could not add comment.");
     }
   };
 
@@ -94,22 +62,116 @@ const Feed = ({ username }) => {
     if (!username) return;
 
     try {
-      const res = await fetch(API_BASE + "/api/posts/" + postId, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username })
-      });
-
-      if (!res.ok) throw new Error("Failed to delete post");
-      setPosts((prev) => prev.filter((post) => post._id !== postId));
-      setError("");
+      await deletePost(postId, username);
+      setLocalError("");
     } catch (err) {
-      setError("Could not delete post.");
+      setLocalError("Could not delete post.");
     }
   };
 
+  const filteredPosts = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+
+    const byView = posts.filter((post) => {
+      if (viewFilter === "media") return Boolean(post.imageUrl);
+      if (viewFilter === "text") return !post.imageUrl;
+      return true;
+    });
+
+    const bySearch = byView.filter((post) => {
+      if (!query) return true;
+      const source = [post.username, post.caption, ...(post.comments || []).map((comment) => comment.text)]
+        .join(" ")
+        .toLowerCase();
+      return source.includes(query);
+    });
+
+    const sorted = [...bySearch];
+    if (sortBy === "popular") {
+      sorted.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+    } else if (sortBy === "discussed") {
+      sorted.sort((a, b) => (b.comments?.length || 0) - (a.comments?.length || 0));
+    } else {
+      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    return sorted;
+  }, [posts, searchText, sortBy, viewFilter]);
+
+  const feedStats = useMemo(() => {
+    return {
+      posts: posts.length,
+      likes: posts.reduce((total, post) => total + (post.likes?.length || 0), 0),
+      comments: posts.reduce((total, post) => total + (post.comments?.length || 0), 0)
+    };
+  }, [posts]);
+
+  const handleRefreshFeed = async () => {
+    try {
+      await fetchPosts();
+      setLocalError("");
+    } catch (err) {
+      setLocalError("Could not refresh feed.");
+    }
+  };
+
+  const viewTabs = [
+    { id: "all", label: "All posts" },
+    { id: "media", label: "Media" },
+    { id: "text", label: "Text" }
+  ];
+
   return (
     <main className="feed">
+      <section className="feed-toolbar card-surface">
+        <div className="stats-grid">
+          <article className="stat-card">
+            <p className="stat-label">Posts in feed</p>
+            <p className="stat-value">{feedStats.posts}</p>
+          </article>
+          <article className="stat-card">
+            <p className="stat-label">Total likes</p>
+            <p className="stat-value">{feedStats.likes}</p>
+          </article>
+          <article className="stat-card">
+            <p className="stat-label">Total comments</p>
+            <p className="stat-value">{feedStats.comments}</p>
+          </article>
+        </div>
+
+        <div className="feed-controls">
+          <input
+            className="feed-search"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="Search captions, users, and comments"
+          />
+
+          <select className="sort-select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+            <option value="recent">Most recent</option>
+            <option value="popular">Most liked</option>
+            <option value="discussed">Most discussed</option>
+          </select>
+
+          <button className="action-btn secondary-btn" type="button" onClick={handleRefreshFeed}>
+            Refresh
+          </button>
+        </div>
+
+        <div className="feed-tabs" role="tablist" aria-label="Feed view filters">
+          {viewTabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={"feed-tab" + (viewFilter === tab.id ? " active" : "")}
+              onClick={() => setViewFilter(tab.id)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <Stories />
 
       <CreatePost
@@ -120,19 +182,26 @@ const Feed = ({ username }) => {
         setImageUrl={setImageUrl}
       />
 
-      {error && <p className="error-text">{error}</p>}
+      {(error || localError) && <p className="error-text">{localError || error}</p>}
 
       <div className="posts-list">
-        {posts.map((post) => (
+        {filteredPosts.map((post) => (
           <PostCard
             key={post._id}
             post={post}
             username={username}
-            toggleLike={toggleLike}
+            toggleLike={handleToggleLike}
             handleDeletePost={handleDeletePost}
             handleAddComment={handleAddComment}
           />
         ))}
+
+        {!filteredPosts.length && (
+          <article className="empty-state">
+            <h3>No posts match your current filters</h3>
+            <p>Try another search, tab, or sort option to discover content.</p>
+          </article>
+        )}
       </div>
     </main>
   );

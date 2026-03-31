@@ -1,54 +1,88 @@
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
 import Sidebar from "./components/Sidebar";
 import Feed from "./components/Feed";
 import Profile from "./components/Profile";
 import RightPanel from "./components/RightPanel";
+import Header from "./components/Header";
 
 function App() {
   const [username, setUsername] = useState(() => localStorage.getItem("insta_username") || "");
-  const hasPromptedRef = useRef(false);
+  const [usernameInput, setUsernameInput] = useState("");
 
-  useEffect(() => {
-    if (username || hasPromptedRef.current) return;
+  const appDisplayName = useMemo(() => {
+    if (!username) return "Guest";
+    return username;
+  }, [username]);
 
-    hasPromptedRef.current = true;
-    const asked = window.prompt("Enter your username") || "";
-    const clean = asked.trim();
+  const handleStartSession = (event) => {
+    event.preventDefault();
+    const clean = usernameInput.trim();
     if (!clean) return;
 
     localStorage.setItem("insta_username", clean);
     setUsername(clean);
-  }, [username]);
+    setUsernameInput("");
+  };
 
   return (
     <BrowserRouter>
       <div className="app-layout">
-        <Sidebar username={username} />
+        {!username ? (
+          <main className="welcome-shell">
+            <section className="welcome-card">
+              <p className="welcome-kicker">Welcome to InstaClone Pro</p>
+              <h1 className="welcome-title">Start your social workspace</h1>
+              <p className="welcome-subtitle">
+                Pick your username to unlock your feed, profile insights, follows, and live activity.
+              </p>
 
-        <div className="content-area">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="main-with-panel">
-                  <Feed username={username} />
-                  <RightPanel />
-                </div>
-              }
-            />
-            <Route
-              path="/profile/:username"
-              element={
-                <div className="main-with-panel">
-                  <Profile />
-                  <RightPanel />
-                </div>
-              }
-            />
-          </Routes>
-        </div>
+              <form className="welcome-form" onSubmit={handleStartSession}>
+                <input
+                  className="welcome-input"
+                  value={usernameInput}
+                  onChange={(event) => setUsernameInput(event.target.value)}
+                  placeholder="Choose a username"
+                  maxLength={30}
+                  required
+                />
+                <button className="welcome-btn" type="submit">
+                  Continue
+                </button>
+              </form>
+            </section>
+          </main>
+        ) : (
+          <>
+            <Sidebar username={username} />
+
+            <div className="content-area">
+              <Header username={appDisplayName} setUsername={setUsername} />
+
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <div className="main-with-panel">
+                      <Feed username={username} />
+                      <RightPanel username={username} />
+                    </div>
+                  }
+                />
+                <Route
+                  path="/profile/:username"
+                  element={
+                    <div className="main-with-panel">
+                      <Profile currentUsername={username} />
+                      <RightPanel username={username} />
+                    </div>
+                  }
+                />
+              </Routes>
+            </div>
+          </>
+        )}
       </div>
     </BrowserRouter>
   );

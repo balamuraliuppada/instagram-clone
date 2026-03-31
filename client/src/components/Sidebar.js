@@ -2,11 +2,8 @@ import { Link } from "react-router-dom";
 
 const navItems = [
   { label: "Home", to: "/" },
-  { label: "Search" },
-  { label: "Explore" },
-  { label: "Reels" },
-  { label: "Messages" },
-  { label: "Notifications" },
+  { label: "Discover" },
+  { label: "Activity" },
   { label: "Create" }
 ];
 
@@ -15,7 +12,8 @@ const Sidebar = ({ username }) => {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-brand">Instagram</div>
+      <div className="sidebar-brand">InstaClone Pro</div>
+      <p className="sidebar-subtitle">Creator workspace</p>
 
       <nav className="sidebar-nav">
         {navItems.map((item) =>
@@ -24,8 +22,8 @@ const Sidebar = ({ username }) => {
               {item.label}
             </Link>
           ) : (
-            <button key={item.label} className="sidebar-item" type="button">
-              {item.label}
+            <button key={item.label} className="sidebar-item sidebar-item-muted" type="button">
+              {item.label} <span className="badge-soon">Soon</span>
             </button>
           )
         )}
